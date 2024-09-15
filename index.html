@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NPS App for Instagram</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        input, button {
+            margin: 10px 0;
+            padding: 10px;
+        }
+        .scores {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Net Promoter Score for Instagram</h1>
+
+    <form id="npsForm">
+        <input type="text" id="instagramAccount" placeholder="Instagram Account" required><br>
+        <input type="number" id="npsScore" placeholder="NPS Score" min="0" max="10" required><br>
+        <button type="submit">Submit NPS</button>
+    </form>
+
+    <h2>Submitted NPS Scores</h2>
+    <div class="scores" id="scoresList"></div>
+
+    <script>
+        const form = document.getElementById('npsForm');
+        const scoresList = document.getElementById('scoresList');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const instagramAccount = document.getElementById('instagramAccount').value;
+            const npsScore = document.getElementById('npsScore').value;
+
+            // Submit NPS score
+            await fetch('http://35.239.25.63/api/nps', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ score: npsScore, instagram_account: instagramAccount }),
+            });
+
+            // Clear form fields
+            document.getElementById('npsScore').value = '';
+            loadScores(instagramAccount);
+        });
+
+        // Function to load NPS scores for the entered Instagram account
+        async function loadScores(account) {
+            const response = await fetch(`http://35.239.25.63/api/nps/${account}`);
+            const scores = await response.json();
+
+            scoresList.innerHTML = '';
+            scores.forEach(score => {
+                const scoreElement = document.createElement('div');
+                scoreElement.textContent = `Score: ${score.score} | Account: ${score.instagram_account}`;
+                scoresList.appendChild(scoreElement);
+            });
+        }
+    </script>
+</body>
+</html>
