@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NPS App for Instagram</title>
+    <title>NPS App with Image Upload</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -24,6 +24,7 @@
     <form id="npsForm">
         <input type="text" id="instagramAccount" placeholder="Instagram Account" required><br>
         <input type="number" id="npsScore" placeholder="NPS Score" min="0" max="10" required><br>
+        <input type="file" id="imageInput" name="image" accept="image/*" required><br>
         <button type="submit">Submit NPS</button>
     </form>
 
@@ -31,38 +32,63 @@
     <div class="scores" id="scoresList"></div>
 
     <script>
-        const form = document.getElementById('npsForm');
+        // const baseUrl = "http://35.222.66.247"
+        const baseUrl = "http://localhost:3000"
+        const npsForm = document.getElementById('npsForm');
         const scoresList = document.getElementById('scoresList');
 
-        form.addEventListener('submit', async (e) => {
+        // Function to submit NPS score and image
+        npsForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
+            const formData = new FormData();
             const instagramAccount = document.getElementById('instagramAccount').value;
             const npsScore = document.getElementById('npsScore').value;
+            const imageInput = document.getElementById('imageInput');
 
-            // Submit NPS score
-            await fetch('http://35.239.25.63/api/nps', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ score: npsScore, instagram_account: instagramAccount }),
-            });
+            if (imageInput.files.length === 0) {
+                alert('Please select an image to upload.');
+                return;
+            }
 
-            // Clear form fields
-            document.getElementById('npsScore').value = '';
-            loadScores(instagramAccount);
+            formData.append('instagram_account', instagramAccount);
+            formData.append('score', npsScore);
+            formData.append('image', imageInput.files[0]);
+
+            try {
+                const response = await fetch(baseUrl + '/api/nps', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to submit NPS');
+                }
+
+                const data = await response.json();
+                alert(`NPS and image submitted successfully! Image URL: ${data.imageUrl}`);
+
+                document.getElementById('npsScore').value = '';
+                document.getElementById('imageInput').value = '';
+                loadScores(instagramAccount);
+            } catch (error) {
+                console.error(error);
+                alert('Error submitting NPS');
+            }
         });
 
         // Function to load NPS scores for the entered Instagram account
         async function loadScores(account) {
-            const response = await fetch(`http://35.239.25.63/api/nps/${account}`);
+            const response = await fetch(`${baseUrl}/api/nps/${account}`);
             const scores = await response.json();
 
             scoresList.innerHTML = '';
             scores.forEach(score => {
                 const scoreElement = document.createElement('div');
-                scoreElement.textContent = `Score: ${score.score} | Account: ${score.instagram_account}`;
+                scoreElement.innerHTML = `
+                    <p>Score: ${score.score} | Account: ${score.instagram_account}</p>
+                    <p>Proof Image: <a href="${score.imageUrl}" target="_blank">View Image</a></p>
+                `;
                 scoresList.appendChild(scoreElement);
             });
         }
